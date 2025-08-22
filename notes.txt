@@ -1,0 +1,3 @@
+./gradlew lwjgl3:run
+
+Card dimensions: 600x1000 px
