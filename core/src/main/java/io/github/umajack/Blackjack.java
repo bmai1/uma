@@ -70,18 +70,34 @@ public class Blackjack {
         System.out.println("Dealer's upcard: " + (dealer - v(hole)));
     }
 
-    public int findWinner() {
-        int min = 21, winner = -1;
+    public ArrayList<Integer> findWinners() {
+        ArrayList<Integer> winners = new ArrayList<>();
+        int max = 0;
         for (int player = 0; player < players.size(); ++player) {
-            int diff = 21 - players.get(player).getHand();
-            // TODO: handle push for multiple players when equal hands
-            if (diff >= 0 && diff <= min) {
-                winner = player;
-                min = diff;
+            int hand = players.get(player).getHand();
+            if (hand > max && hand <= 21) {
+                winners.clear();
+                winners.add(player);
+                max = hand;
+            }
+            else if (hand == max) {
+                winners.add(player);
             }
         }
-        int diff = 21 - dealer;
-        return (diff <= min) ? -1 : winner;
+
+        // Dealer doesn't bust and ties or all players bust
+        if (dealer == max || max == 0) {
+            winners.add(-1);
+        }
+
+        // Dealer doesn't bust and has highest hand 
+        else if (dealer <= 21 && dealer > max) {
+            winners.clear();
+            winners.add(-1);
+        }
+
+        winners.add(max);
+        return winners;
     }
 
     public void simulateHand() {
@@ -98,19 +114,58 @@ public class Blackjack {
                 float card = hit();
                 p.setHand(p.getHand() + v(card));
                 if (p.getHand() > 21) {
+                    System.out.println("Player " + player + "'s hand: " + p.getHand() + ". Busted.");
                     break;
                 }
             }
         }
         scanner.close();
 
-        while (dealer < 17) {
-            float card = hit();
-            dealer += v(card);
+        boolean allBusted = true;
+        int max = 0;
+        for (Player p : players) {
+            int hand = p.getHand();
+            if (hand <= 21) {
+                allBusted = false;
+            }
+            if (hand <= 21 && hand > max) {
+                max = hand;
+            }
         }
 
-        System.out.println("Dealer's hand: " + dealer);
-        System.out.println("The winner is player " + findWinner());
+        if (allBusted) {
+            System.out.println("All players busted. Dealer wins.");
+        } 
+        else {
+            // Dealer tries to beat highest hand
+            System.out.println("Dealer's hand: " + dealer);
+            while (dealer < 17 && dealer < max) {
+                float card = hit();
+                dealer += v(card);
+                System.out.println("Dealer drew " + v(card) + ". Dealer's hand: " + dealer);
+            }
+
+            // Results for each player
+            for (int player = 0; player < players.size(); ++player) {
+                int playerHand = players.get(player).getHand();
+                System.out.print("Player " + player + "'s result: ");
+                if (playerHand > 21) {
+                    System.out.println("Busted. Lose.");
+                } 
+                else if (dealer > 21) {
+                    System.out.println("Dealer busted. Win.");
+                } 
+                else if (playerHand > dealer) {
+                    System.out.println("Win.");
+                } 
+                else if (playerHand == dealer) {
+                    System.out.println("Push (tie).");
+                } 
+                else {
+                    System.out.println("Lose.");
+                }
+            }
+        }
     }
 
     public static void main(String[] args) {
