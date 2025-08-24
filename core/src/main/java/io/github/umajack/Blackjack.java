@@ -2,19 +2,20 @@ package io.github.umajack;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Scanner;
 
 public class Blackjack {
     private ArrayList<Player> players;
     private ArrayList<Float> deck;
     private int dealer = 0;
+    private int currentPlayerIndex = 0;
+    private boolean gameOver = false;
+    private boolean dealerTurn = false;
 
     public Blackjack(ArrayList<Player> players) {
         this.players = players;
         deck = new ArrayList<>();
         init();
         shuffle();
-        // System.out.println("There are " + deck.size() + " cards");
     }
 
     private void init() {
@@ -54,6 +55,9 @@ public class Blackjack {
             p.setHand(v(card));
         }
         float upcard = hit();
+        
+        
+
         dealer = v(upcard);
 
         for (Player p : players) {
@@ -100,78 +104,85 @@ public class Blackjack {
         return winners;
     }
 
+    // Start a new hand and set up for UI-driven play
     public void simulateHand() {
         deal();
-        Scanner scanner = new Scanner(System.in);
-        for (int player = 0; player < players.size(); ++player) {
-            Player p = players.get(player);
-            while (true) {
-                System.out.print("Player " + player + "'s hand: " + p.getHand() + ". Hit or stand? (h/s): ");
-                String input = scanner.nextLine();
-                if (input.equals("s")) {
-                    break;
-                }
-                float card = hit();
-                p.setHand(p.getHand() + v(card));
-                if (p.getHand() > 21) {
-                    System.out.println("Player " + player + "'s hand: " + p.getHand() + ". Busted.");
-                    break;
-                }
-            }
-        }
-        scanner.close();
+        currentPlayerIndex = 0;
+        gameOver = false;
+        dealerTurn = false;
+        System.out.println("Player " + currentPlayerIndex + "'s turn. Hand: " + players.get(currentPlayerIndex).getHand());
+    }
 
-        boolean allBusted = true;
+    // Call this when the player clicks "Hit"
+    public void playerHit() {
+        if (gameOver || dealerTurn) return;
+        Player p = players.get(currentPlayerIndex);
+        float card = hit();
+        p.setHand(p.getHand() + v(card));
+        System.out.println("Player " + currentPlayerIndex + " hits: " + v(card) + ". Hand: " + p.getHand());
+        if (p.getHand() > 21) {
+            System.out.println("Player " + currentPlayerIndex + " busted!");
+            nextPlayer();
+        }
+    }
+
+    // Call this when the player clicks "Stand"
+    public void playerStand() {
+        if (gameOver || dealerTurn) return;
+        System.out.println("Player " + currentPlayerIndex + " stands. Hand: " + players.get(currentPlayerIndex).getHand());
+        nextPlayer();
+    }
+
+    // Move to next player or dealer
+    private void nextPlayer() {
+        currentPlayerIndex++;
+        if (currentPlayerIndex >= players.size()) {
+            dealerTurn = true;
+            dealerPlay();
+        } else {
+            System.out.println("Player " + currentPlayerIndex + "'s turn. Hand: " + players.get(currentPlayerIndex).getHand());
+        }
+    }
+
+    // Dealer's turn logic
+    private void dealerPlay() {
         int max = 0;
         for (Player p : players) {
             int hand = p.getHand();
-            if (hand <= 21) {
-                allBusted = false;
-            }
             if (hand <= 21 && hand > max) {
                 max = hand;
             }
         }
-
-        if (allBusted) {
-            System.out.println("All players busted. Dealer wins.");
-        } 
-        else {
-            // Dealer tries to beat highest hand
-            System.out.println("Dealer's hand: " + dealer);
-            while (dealer < 17 && dealer < max) {
-                float card = hit();
-                dealer += v(card);
-                System.out.println("Dealer drew " + v(card) + ". Dealer's hand: " + dealer);
-            }
-
-            // Results for each player
-            for (int player = 0; player < players.size(); ++player) {
-                int playerHand = players.get(player).getHand();
-                System.out.print("Player " + player + "'s result: ");
-                if (playerHand > 21) {
-                    System.out.println("Busted. Lose.");
-                } 
-                else if (dealer > 21) {
-                    System.out.println("Dealer busted. Win.");
-                } 
-                else if (playerHand > dealer) {
-                    System.out.println("Win.");
-                } 
-                else if (playerHand == dealer) {
-                    System.out.println("Push (tie).");
-                } 
-                else {
-                    System.out.println("Lose.");
-                }
-            }
+        System.out.println("Dealer's hand: " + dealer);
+        while (dealer < 17 && dealer < max) {
+            float card = hit();
+            dealer += v(card);
+            System.out.println("Dealer drew " + v(card) + ". Dealer's hand: " + dealer);
         }
+        showResults();
     }
 
-    public static void main(String[] args) {
-        ArrayList<Player> players = new ArrayList<>();
-        players.add(new Player());
-        Blackjack b = new Blackjack(players);
-        b.simulateHand();
+    // Show results for each player
+    private void showResults() {
+        gameOver = true;
+        for (int i = 0; i < players.size(); ++i) {
+            int hand = players.get(i).getHand();
+            System.out.print("Player " + i + "'s result: ");
+            if (hand > 21) {
+                System.out.println("Busted. Lose.");
+            } 
+            else if (dealer > 21) {
+                System.out.println("Dealer busted. Win.");
+            } 
+            else if (hand > dealer) {
+                System.out.println("Win.");
+            } 
+            else if (hand == dealer) {
+                System.out.println("Push (tie).");
+            } 
+            else {
+                System.out.println("Lose.");
+            }
+        }
     }
 }
